@@ -44,3 +44,17 @@ def test_map_coordinates_dts():
             assert_array_almost_equal(out, shifted_data)
             out = ndimage.zoom(these_data, 1)
             assert_array_almost_equal(these_data, out)
+
+
+def test_uint64_max():
+    # Test interpolation respects uint64 max
+    # Avoid the max of uint64 because it leads to odd interpolation artefacts
+    big = 2**63-1
+    arr = np.array([big, big, big], dtype=np.uint64)
+    # Tests geometric transform (map_coordinates, affine_transform)
+    inds = np.indices(arr.shape) - 0.1
+    x = ndimage.map_coordinates(arr, inds, order=0)
+    assert_equal(x[1], big)
+    # Tests zoom / shift
+    x = ndimage.shift(arr, 0.1, order=0)
+    assert_equal(x[1], big)
