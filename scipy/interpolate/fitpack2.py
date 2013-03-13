@@ -1,5 +1,5 @@
 """
-fitpack --- curve and surface fitting with splines
+fitpack2 - class interfaces for curve and surface fitting with splines
 
 fitpack is based on a collection of Fortran routines DIERCKX
 by P. Dierckx (see http://www.netlib.org/dierckx/) transformed
@@ -74,7 +74,7 @@ class UnivariateSpline(object):
         1-D array of independent input data. Must be increasing.
     y : (N,) array_like
         1-D array of dependent input data, of the same length as `x`.
-    w : (N,) array_like, optional
+    w : None or (N,) array_like, optional
         Weights for spline fitting.  Must be positive.  If None (default),
         weights are all equal.
     bbox : (2,) array_like, optional
@@ -107,7 +107,7 @@ class UnivariateSpline(object):
 
     Examples
     --------
-    >>> from numpy import linspace,exp
+    >>> from numpy import linspace ,exp
     >>> from numpy.random import randn
     >>> from scipy.interpolate import UnivariateSpline
     >>> x = linspace(-3, 3, 100)
@@ -116,28 +116,13 @@ class UnivariateSpline(object):
     >>> xs = linspace(-3, 3, 1000)
     >>> ys = s(xs)
 
-    xs,ys is now a smoothed, super-sampled version of the noisy gaussian x,y.
-
+    xs,ys is now a smoothed, super-sampled version of the noisy Gaussian x, y.
     """
 
     def __init__(self, x, y, w=None, bbox = [None]*2, k=3, s=None):
-        """
-        Input:
-          x,y   - 1-d sequences of data points (x must be
-                  in strictly ascending order)
+        """ Initialize spline-fitting instance
 
-        Optional input:
-          w          - positive 1-d sequence of weights
-          bbox       - 2-sequence specifying the boundary of
-                       the approximation interval.
-                       By default, bbox=[x[0],x[-1]]
-          k=3        - degree of the univariate spline.
-          s          - positive smoothing factor defined for
-                       estimation condition:
-                         sum((w[i]*(y[i]-s(x[i])))**2,axis=0) <= s
-                       Default s=len(w) which should be a good value
-                       if 1/w[i] is an estimate of the standard
-                       deviation of y[i].
+        See class docstring for parameters.
         """
         #_data == x,y,w,xb,xe,k,s,n,t,c,fp,fpint,nrdata,ier
         data = dfitpack.fpcurf0(x,y,k,w=w,
@@ -196,9 +181,9 @@ class UnivariateSpline(object):
         return data
 
     def set_smoothing_factor(self, s):
-        """ Continue spline computation with the given smoothing
-        factor s and with the knots found at the last call.
+        """ Continue spline computation with smoothing factor `s`
 
+        Use `s` with the knots found at the last call.
         """
         data = self._data
         if data[6]==-1:

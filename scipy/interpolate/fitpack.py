@@ -1,19 +1,21 @@
 #!/usr/bin/env python
 """
-fitpack (dierckx in netlib) --- A Python-C wrapper to FITPACK (by P. Dierckx).
-        FITPACK is a collection of FORTRAN programs for curve and surface
-        fitting with splines and tensor product splines.
+fitpack - A Python-C function interface to FITPACK (by P. Dierckx).
 
-See
- http://www.cs.kuleuven.ac.be/cwis/research/nalag/research/topics/fitpack.html
-or
- http://www.netlib.org/dierckx/index.html
+See ``fitpack2`` for class interfaces to the same routines.
 
-Copyright 2002 Pearu Peterson all rights reserved,
-Pearu Peterson <pearu@cens.ioc.ee>
-Permission to use, modify, and distribute this software is given under the
-terms of the SciPy (BSD style) license.  See LICENSE.txt that came with
-this distribution for specifics.
+FITPACK is a collection of FORTRAN programs for curve and surface fitting with
+splines and tensor product splines. The same routines are referred to as dierckx
+in netlib.
+
+See: http://www.netlib.org/dierckx/index.html
+
+Copyright 2002 Pearu Peterson all rights reserved, Pearu Peterson
+<pearu@cens.ioc.ee>
+
+Permission to use, modify, and distribute this software is given under the terms
+of the SciPy (BSD style) license.  See LICENSE.txt that came with this
+distribution for specifics.
 
 NO WARRANTY IS EXPRESSED OR IMPLIED.  USE AT YOUR OWN RISK.
 
