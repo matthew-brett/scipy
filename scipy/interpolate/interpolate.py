@@ -811,10 +811,11 @@ def splmake(xk, yk, order=3, kind='smoothest', conds=None):
     order : int, optional
         Order of the spline
     kind : str, optional
-        Can be 'smoothest', 'not_a_knot', 'fixed', 'clamped', 'natural',
-        'periodic', 'symmetric', 'user', 'mixed' and it is ignored if order < 2
-    conds : optional
-        Conds
+        Can be 'smoothest', 'smoothest2', 'user'.  Ignored if `order` < 2.
+    conds : None or 2-tuple, optional
+        Used only in case of `kind` == 'user'.  A tuple of an array and a vector
+        giving the left-hand and the right-hand side of the additional equations
+        to add to the constraint matrix in calculating the spline.
 
     Returns
     -------
@@ -914,10 +915,12 @@ def spline(xk, yk, xnew, order=3, kind='smoothest', conds=None):
         The x values where spline should estimate the y values.
     order : int
         Default is 3.
-    kind : string
-        One of {'smoothest'}
-    conds : Don't know
-        Don't know
+    kind : str, optional
+        Can be 'smoothest', 'smoothest2', 'user'. Ignored if `order` < 2
+    conds : None or 2-tuple, optional
+        Used only in case of `kind` == 'user'.  A tuple of an array and a vector
+        giving the left-hand and the right-hand side of the additional equations
+        to add to the constraint matrix in calculating the spline.
 
     Returns
     -------
