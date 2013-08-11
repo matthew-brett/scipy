@@ -504,9 +504,6 @@ class VarWriter5(object):
         self.unicode_strings = file_writer.unicode_strings
         self.long_field_names = file_writer.long_field_names
         self.oned_as = file_writer.oned_as
-        # These are used for top level writes, and unset after
-        self._var_name = None
-        self._var_is_global = False
 
     def write_bytes(self, arr):
         self.file_stream.write(arr.tostring(order='F'))
@@ -547,29 +544,52 @@ class VarWriter5(object):
         if bc_mod_8:
             self.file_stream.write(b'\x00' * (8-bc_mod_8))
 
+    def _element_size(self, byte_count):
+        if byte_count <= 4:
+            return NDT_TAG_SMALL.itemsize
+        bc_mod_8 = byte_count % 8
+        padding = 0 if bc_mod_8 == 0 else 8 - bc_mod_8
+        return NDT_TAG_FULL.itemsize + byte_count + padding
+
+
+    def _header_size(self, ndim, name):
+        ndim = 2 if ndim < 2 else ndim
+        return (NDT_ARRAY_FLAGS.itemsize +
+                self._element_size(4 * ndim) + # i4s for shape
+                self._element_size(len(name)))
+
+    def _write_mat_tag(self, byte_count):
+        self.mat_tag['byte_count'] = byte_count
+        self.write_bytes(self.mat_tag)
+
     def write_header(self,
                      shape,
                      mclass,
                      is_complex=False,
                      is_logical=False,
-                     nzmax=0):
+                     nzmax=0,
+                     name='',
+                     is_global=False,
+                    ):
         ''' Write header for given data options
+
+        Parameters
+        ----------
         shape : sequence
            array shape
-        mclass      - mat5 matrix class
-        is_complex  - True if matrix is complex
-        is_logical  - True if matrix is logical
-        nzmax        - max non zero elements for sparse arrays
-
-        We get the name and the global flag from the object, and reset
-        them to defaults after we've used them
+        mclass : int
+            mat5 matrix class
+        is_complex : {False, True}, optional
+            True if matrix is complex
+        is_logical : {False, True}, optional
+            True if matrix is logical
+        nzmax : int, optional
+            max non zero elements for sparse arrays
+        name : str, optional
+            name for matrix in matlab namespace
+        is_global : {False, True}, optional
+            Whether variable is global or not
         '''
-        # get name and is_global from one-shot object store
-        name = self._var_name
-        is_global = self._var_is_global
-        # initialize the top-level matrix tag, store position
-        self._mat_tag_pos = self.file_stream.tell()
-        self.write_bytes(self.mat_tag)
         # write array flags (complex, global, logical, class, nzmax)
         af = np.zeros((), NDT_ARRAY_FLAGS)
         af['data_type'] = miUINT32
@@ -586,9 +606,6 @@ class VarWriter5(object):
             self.write_smalldata_element(name, miINT8, 0)
         else:
             self.write_element(name, miINT8)
-        # reset the one-shot store to defaults
-        self._var_name = ''
-        self._var_is_global = False
 
     def update_matrix_tag(self, start_pos):
         curr_pos = self.file_stream.tell()
@@ -600,41 +617,24 @@ class VarWriter5(object):
         self.mat_tag['byte_count'] = byte_count
         self.write_bytes(self.mat_tag)
         self.file_stream.seek(curr_pos)
+        return byte_count
 
-    def write_top(self, arr, name, is_global):
-        """ Write variable at top level of mat file
-
-        Parameters
-        ----------
-        arr : array-like
-            array-like object to create writer for
-        name : str, optional
-            name as it will appear in matlab workspace
-            default is empty string
-        is_global : {False, True}, optional
-            whether variable will be global on load into matlab
-        """
-        # these are set before the top-level header write, and unset at
-        # the end of the same write, because they do not apply for lower levels
-        self._var_is_global = is_global
-        self._var_name = name
-        # write the header and data
-        self.write(arr)
-
-    def write(self, arr):
+    def write(self, arr, name='', is_global=False):
         ''' Write `arr` to stream at top and sub levels
 
         Parameters
         ----------
         arr : array-like
-            array-like object to create writer for
+            array-like object to write
+        name : str, optional
+            name as it will appear in matlab workspace
+            default is empty string
+        is_global : {False, True}, optional
+            whether variable will be global on load into matlab
         '''
-        # store position, so we can update the matrix tag
-        mat_tag_pos = self.file_stream.tell()
         # First check if these are sparse
         if scipy.sparse.issparse(arr):
-            self.write_sparse(arr)
-            self.update_matrix_tag(mat_tag_pos)
+            self.write_sparse(arr, name, is_global)
             return
         # Try to convert things that aren't arrays
         narr = to_writeable(arr)
@@ -642,24 +642,23 @@ class VarWriter5(object):
             raise TypeError('Could not convert %s (type %s) to array'
                             % (arr, type(arr)))
         if isinstance(narr, MatlabObject):
-            self.write_object(narr)
+            self.write_object(narr, name, is_global)
         elif isinstance(narr, MatlabFunction):
             raise MatWriteError('Cannot write matlab functions')
         elif narr.dtype.fields:  # struct array
-            self.write_struct(narr)
+            self.write_struct(narr, name, is_global)
         elif narr.dtype.hasobject:  # cell array
-            self.write_cells(narr)
+            self.write_cells(narr, name, is_global)
         elif narr.dtype.kind in ('U', 'S'):
             if self.unicode_strings:
                 codec = 'UTF8'
             else:
                 codec = 'ascii'
-            self.write_char(narr, codec)
+            self.write_char(narr, name, is_global, codec)
         else:
-            self.write_numeric(narr)
-        self.update_matrix_tag(mat_tag_pos)
+            self.write_numeric(narr, name, is_global)
 
-    def write_numeric(self, arr):
+    def write_numeric(self, arr, name, is_global):
         imagf = arr.dtype.kind == 'c'
         logif = arr.dtype.kind == 'b'
         try:
@@ -674,19 +673,29 @@ class VarWriter5(object):
             else:
                 arr = arr.astype('f8')
             mclass = mxDOUBLE_CLASS
+        byte_count = self._header_size(arr.ndim, name)
+        if imagf:
+            byte_count += self._element_size(arr.nbytes / 2) * 2
+        else:
+            byte_count += self._element_size(arr.nbytes)
+        self._write_mat_tag(byte_count)
         self.write_header(matdims(arr, self.oned_as),
                           mclass,
                           is_complex=imagf,
-                          is_logical=logif)
+                          is_logical=logif,
+                          name=name,
+                          is_global=is_global,
+                         )
         if imagf:
             self.write_element(arr.real)
             self.write_element(arr.imag)
         else:
             self.write_element(arr)
 
-    def write_char(self, arr, codec='ascii'):
+    def write_char(self, arr, name, is_global, codec='ascii'):
         ''' Write string array `arr` with given `codec`
         '''
+        # initialize the top-level matrix tag
         if arr.size == 0 or np.all(arr == ''):
             # This an empty string array or a string array containing
             # only empty strings.  Matlab cannot distiguish between a
@@ -698,18 +707,21 @@ class VarWriter5(object):
             # empty strings have zero padding, which would otherwise
             # appear in matlab as a string with a space.
             shape = (0,) * np.max([arr.ndim, 2])
-            self.write_header(shape, mxCHAR_CLASS)
+            byte_count = (self._header_size(len(shape), name) +
+                          NDT_TAG_SMALL.itemsize)
+            self._write_mat_tag(byte_count)
+            self.write_header(shape, mxCHAR_CLASS,
+                              name=name,
+                              is_global=is_global)
             self.write_smalldata_element(arr, miUTF8, 0)
             return
         # non-empty string.
-        #
         # Convert to char array
         arr = arr_to_chars(arr)
         # We have to write the shape directly, because we are going
         # recode the characters, and the resulting stream of chars
         # may have a different length
         shape = arr.shape
-        self.write_header(shape, mxCHAR_CLASS)
         if arr.dtype.kind == 'U' and arr.size:
             # Make one long string from all the characters.  We need to
             # transpose here, because we're flattening the array, before
@@ -725,9 +737,13 @@ class VarWriter5(object):
             arr = np.ndarray(shape=(len(st),),
                              dtype='S1',
                              buffer=st)
+        byte_count = (self._header_size(len(shape), name) +
+                      self._element_size(arr.nbytes))
+        self._write_mat_tag(byte_count)
+        self.write_header(shape, mxCHAR_CLASS, name=name, is_global=is_global)
         self.write_element(arr, mdtype=miUTF8)
 
-    def write_sparse(self, arr):
+    def write_sparse(self, arr, name, is_global):
         ''' Sparse matrices are 2D
         '''
         A = arr.tocsc()  # convert to sparse CSC format
@@ -735,29 +751,54 @@ class VarWriter5(object):
         is_complex = (A.dtype.kind == 'c')
         is_logical = (A.dtype.kind == 'b')
         nz = A.nnz
+        # initialize the top-level matrix tag
+        byte_count = (self._header_size(A.ndim, name) +
+                      self._element_size(nz * 4) + # indices
+                      self._element_size(len(A.indptr) * 4))
+        if is_complex:
+            byte_count += self._element_size(A.data.nbytes / 2) * 2
+        else:
+            byte_count += self._element_size(A.data.nbytes)
+        self._write_mat_tag(byte_count)
         self.write_header(matdims(arr, self.oned_as),
                           mxSPARSE_CLASS,
                           is_complex=is_complex,
                           is_logical=is_logical,
-                          nzmax=nz)
+                          nzmax=nz,
+                          name=name,
+                          is_global=is_global)
         self.write_element(A.indices.astype('i4'))
         self.write_element(A.indptr.astype('i4'))
         self.write_element(A.data.real)
         if is_complex:
             self.write_element(A.data.imag)
 
-    def write_cells(self, arr):
+    def write_cells(self, arr, name, is_global):
+        # store position, so we can update the matrix tag
+        mat_tag_pos = self.file_stream.tell()
+        # initialize the top-level matrix tag
+        self.write_bytes(self.mat_tag)
         self.write_header(matdims(arr, self.oned_as),
-                          mxCELL_CLASS)
+                          mxCELL_CLASS,
+                          name=name,
+                          is_global=is_global)
         # loop over data, column major
         A = np.atleast_2d(arr).flatten('F')
         for el in A:
             self.write(el)
+        self.update_matrix_tag(mat_tag_pos)
 
-    def write_struct(self, arr):
+    def write_struct(self, arr, name, is_global):
+        # store position, so we can update the matrix tag
+        mat_tag_pos = self.file_stream.tell()
+        # initialize the top-level matrix tag
+        self.write_bytes(self.mat_tag)
         self.write_header(matdims(arr, self.oned_as),
-                          mxSTRUCT_CLASS)
+                          mxSTRUCT_CLASS,
+                          name=name,
+                          is_global=is_global)
         self._write_items(arr)
+        self.update_matrix_tag(mat_tag_pos)
 
     def _write_items(self, arr):
         # write fieldnames
@@ -777,15 +818,22 @@ class VarWriter5(object):
             for f in fieldnames:
                 self.write(el[f])
 
-    def write_object(self, arr):
+    def write_object(self, arr, name, is_global):
         '''Same as writing structs, except different mx class, and extra
         classname element after header
         '''
+        # store position, so we can update the matrix tag
+        mat_tag_pos = self.file_stream.tell()
+        # initialize the top-level matrix tag
+        self.write_bytes(self.mat_tag)
         self.write_header(matdims(arr, self.oned_as),
-                          mxOBJECT_CLASS)
+                          mxOBJECT_CLASS,
+                          name=name,
+                          is_global=is_global)
         self.write_element(np.array(arr.classname, dtype='S'),
                            mdtype=miINT8)
         self._write_items(arr)
+        self.update_matrix_tag(mat_tag_pos) # Need test for this
 
 
 class MatFile5Writer(object):
@@ -867,7 +915,7 @@ class MatFile5Writer(object):
             if self.do_compression:
                 stream = BytesIO()
                 self._matrix_writer.file_stream = stream
-                self._matrix_writer.write_top(var, asbytes(name), is_global)
+                self._matrix_writer.write(var, asbytes(name), is_global)
                 out_str = zlib.compress(stream.getvalue())
                 tag = np.empty((), NDT_TAG_FULL)
                 tag['mdtype'] = miCOMPRESSED
@@ -875,4 +923,4 @@ class MatFile5Writer(object):
                 self.file_stream.write(tag.tostring())
                 self.file_stream.write(out_str)
             else:  # not compressing
-                self._matrix_writer.write_top(var, asbytes(name), is_global)
+                self._matrix_writer.write(var, asbytes(name), is_global)
