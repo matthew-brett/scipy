@@ -516,6 +516,11 @@ cdef class VarReader5:
         ''' Return matrix header for current stream position
 
         Returns matrix headers at top level and sub levels
+
+        Parameters
+        ----------
+        check_stream_limit : {True, False}
+            Whether to check compressed stream endings
         '''
         cdef:
             cdef cnp.uint32_t u4s[2]
@@ -612,7 +617,7 @@ cdef class VarReader5:
                 return np.array([])
             else:
                 return np.array([[]])
-        header = self.read_header(0)
+        header = self.read_header(False)
         return self.array_from_header(header, process)
 
     cpdef array_from_header(self, VarHeader5 header, int process=1):
@@ -655,7 +660,7 @@ cdef class VarReader5:
         elif mc == mxSPARSE_CLASS:
             arr = self.read_sparse(header)
             # no current processing makes sense for sparse
-            process = 0
+            process = False
         elif mc == mxCHAR_CLASS:
             arr = self.read_char(header)
             if process and self.chars_as_strings:
@@ -672,15 +677,17 @@ cdef class VarReader5:
             arr = self.read_mi_matrix()
             arr = mio5p.MatlabFunction(arr)
             # to make them more re-writeable - don't squeeze
-            process = 0
+            process = False
         elif mc == mxOPAQUE_CLASS:
             arr = self.read_opaque(header)
             arr = mio5p.MatlabOpaque(arr)
             # to make them more re-writeable - don't squeeze
-            process = 0
+            process = False
         if header.check_stream_limit:
             if not self.cstream.all_data_read():
-                raise ValueError('Did not fully consume compressed contents of an miCOMPRESSED element. This can indicate that the .mat file is corrupted.')
+                raise ValueError('Did not fully consume compressed contents '
+                                 'an miCOMPRESSED element. This can indicate '
+                                 'that the .mat file is corrupted.')
         if process and self.squeeze_me:
             return squeeze_element(arr)
         return arr
