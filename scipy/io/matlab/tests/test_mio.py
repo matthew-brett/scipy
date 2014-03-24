@@ -31,7 +31,8 @@ import scipy.io.matlab.byteordercodes as boc
 from scipy.io.matlab.miobase import matdims, MatWriteError
 from scipy.io.matlab.mio import (mat_reader_factory, loadmat, savemat, whosmat)
 from scipy.io.matlab.mio5 import (MatlabObject, MatFile5Writer, MatFile5Reader,
-                                  MatlabFunction, varmats_from_mat)
+                                  MatlabFunction, varmats_from_mat,
+                                  to_writeable)
 
 
 test_data_path = pjoin(dirname(__file__), 'data')
@@ -1048,6 +1049,48 @@ def test_empty_sparse():
     res = loadmat(sio)
     assert_array_equal(res['x'].shape, empty_sparse.shape)
     assert_array_equal(res['x'].todense(), 0)
+
+
+def test_to_writeable():
+    # Tests for to_writeable function
+    # pass through ndarrays
+    assert_array_equal(to_writeable(np.array([1])), array([1]))
+    expected = np.array([(1, 2)], dtype=[('a', '|O8'), ('b', '|O8')])
+    assert_array_equal(to_writeable({'a':1,'b':2}), expected)
+    assert_array_equal(to_writeable({'a':1,'b':2, '_c':3}), expected)
+    assert_array_equal(to_writeable({'a':1,'b':2, 100:3}), expected)
+    assert_array_equal(to_writeable({'a':1,'b':2, '99':3}), expected)
+    class klass(object): pass
+    c = klass
+    c.a = 1
+    c.b = 2
+    assert_array_equal(to_writeable({'a':1,'b':2}), expected)
+    empty_out = to_writeable([])
+    assert_array_equal(empty_out, array([]))
+    assert_equal(empty_out.dtype.type, np.float64)
+    empty_out = to_writeable(())
+    assert_array_equal(empty_out, array([]))
+    assert_equal(empty_out.dtype.type, np.float64)
+    # This is up for debate
+    assert_equal(to_writeable(None), None)
+    assert_equal(to_writeable('a string').dtype.type, np.str_)
+    assert_array_equal(to_writeable(1), array(1))
+    assert_array_equal(to_writeable([1]), array([1]))
+    assert_equal(to_writeable(object()), None) # not convertable
+    # dict keys with legal characters are convertible
+    assert_array_equal(to_writeable({'a':1})['a'], array([1], dtype=object))
+     # but not with illegal characters
+    assert_equal(to_writeable({'1':1}), None)
+    assert_equal(to_writeable({'_a':1}), None)
+
+
+def test_none():
+    # Allow None as input
+    sio = BytesIO()
+    savemat(sio ,{'x': None})
+    sio.seek(0)
+    res = loadmat(sio)
+    assert_array_equal(res['x'].shape, (0, 0))
 
 
 if __name__ == "__main__":
