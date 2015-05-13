@@ -701,6 +701,11 @@ class VarWriter5(object):
         A.sort_indices()     # MATLAB expects sorted row indices
         is_complex = (A.dtype.kind == 'c')
         is_logical = (A.dtype.kind == 'b')
+        # In fact, at least up to MATLAB only supports these data types in sparse matrices.
+        recast = A.dtype.type not in (np.bool_,
+                                      np.int32,
+                                      np.float64,
+                                      np.complex128)
         nz = A.nnz
         self.write_header(matdims(arr, self.oned_as),
                           mxSPARSE_CLASS,
@@ -710,9 +715,11 @@ class VarWriter5(object):
                           nzmax=1 if nz == 0 else nz)
         self.write_element(A.indices.astype('i4'))
         self.write_element(A.indptr.astype('i4'))
-        self.write_element(A.data.real)
+        real = A.data.real.astype(float) if recast else A.data.real
+        self.write_element(real)
         if is_complex:
-            self.write_element(A.data.imag)
+            imag = A.data.imag.astype(float) if recast else A.data.imag
+            self.write_element(imag)
 
     def write_cells(self, arr):
         self.write_header(matdims(arr, self.oned_as),

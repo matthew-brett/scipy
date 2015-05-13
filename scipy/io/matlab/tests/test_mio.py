@@ -1224,5 +1224,31 @@ def test_bad_utf8():
                  b'\x80 am broken'.decode('utf8', 'replace'))
 
 
+def test_sparse_matrix_data_types():
+    # Test we save incompatible sparse data types as float
+    for in_dt, out_dt in ((float, np.float),
+                          (np.int32, np.int32),
+                          (bool, np.bool_),
+                          (np.complex128, np.complex128),
+                          (np.float16, np.float),
+                          (np.float32, np.float),
+                          (np.uint8, np.float),
+                          (np.int8, np.float),
+                          (np.uint16, np.float),
+                          (np.int16, np.float),
+                          (np.uint32, np.float),
+                          (np.uint64, np.float),
+                          (np.int64, np.float),
+                          (np.complex64, np.complex128),
+                         ):
+        sio = BytesIO()
+        mat = np.array([1], dtype=in_dt)
+        savemat(sio, {'sp': SP.coo_matrix(mat)})
+        sio.seek(0)
+        res = loadmat(sio)['sp']
+        assert_array_equal(res, mat)
+        assert_equal(res.dtype.type, out_dt)
+
+
 if __name__ == "__main__":
     run_module_suite()
