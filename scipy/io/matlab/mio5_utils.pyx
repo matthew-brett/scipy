@@ -683,6 +683,7 @@ cdef class VarReader5:
         cdef:
             object arr
             cnp.dtype mat_dtype
+            int needs_recast = False
         cdef size_t remaining
         cdef int mc = header.mclass
         if (mc == mxDOUBLE_CLASS
@@ -696,15 +697,11 @@ cdef class VarReader5:
             or mc == mxINT64_CLASS
             or mc == mxUINT64_CLASS): # numeric matrix
             arr = self.read_real_complex(header)
-            if process and self.mat_dtype: # might need to recast
-                if header.is_logical:
-                    mat_dtype = self.bool_dtype
-                else:
-                    mat_dtype = <object>self.class_dtypes[mc]
-                arr = arr.astype(mat_dtype)
+            needs_recast = process and self.mat_dtype  # might need to recast
         elif mc == mxSPARSE_CLASS:
             arr = self.read_sparse(header)
-            # no current processing makes sense for sparse
+            needs_recast = process and self.mat_dtype  # might need to recast
+            # no other current processing makes sense for sparse
             process = False
         elif mc == mxCHAR_CLASS:
             arr = self.read_char(header)
@@ -733,6 +730,12 @@ cdef class VarReader5:
                 raise ValueError('Did not fully consume compressed contents' +
                                  ' of an miCOMPRESSED element. This can' +
                                  ' indicate that the .mat file is corrupted.')
+        if needs_recast:
+            if header.is_logical:
+                mat_dtype = self.bool_dtype
+            else:
+                mat_dtype = <object>self.class_dtypes[mc]
+            arr = arr.astype(mat_dtype)
         if process and self.squeeze_me:
             return squeeze_element(arr)
         return arr

@@ -1226,19 +1226,19 @@ def test_bad_utf8():
 
 def test_sparse_matrix_data_types():
     # Test we save incompatible sparse data types as float
-    for in_dt, out_dt in ((float, np.float),
+    for in_dt, out_dt in ((float, np.float64),
                           (np.int32, np.int32),
                           (bool, np.bool_),
                           (np.complex128, np.complex128),
-                          (np.float16, np.float),
-                          (np.float32, np.float),
-                          (np.uint8, np.float),
-                          (np.int8, np.float),
-                          (np.uint16, np.float),
-                          (np.int16, np.float),
-                          (np.uint32, np.float),
-                          (np.uint64, np.float),
-                          (np.int64, np.float),
+                          (np.float16, np.float64),
+                          (np.float32, np.float64),
+                          (np.uint8, np.float64),
+                          (np.int8, np.float64),
+                          (np.uint16, np.float64),
+                          (np.int16, np.float64),
+                          (np.uint32, np.float64),
+                          (np.uint64, np.float64),
+                          (np.int64, np.float64),
                           (np.complex64, np.complex128),
                          ):
         sio = BytesIO()
