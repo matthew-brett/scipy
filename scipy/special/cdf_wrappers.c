@@ -52,17 +52,23 @@ static void show_error(char *func, int status, int bound) {
   }
 }
 
+
 extern void F_FUNC(cdfbet,CDFBET)(int*,double*,double*,double*,double*,double*,double*,int*,double*);
 
 double cdfbet3_wrap(double p, double b, double x) {
   int which=3;
-  double q=1.0-p, y=1.0-x, a, bound;
-  int status;  
-  
+  double q=1.0-p, y=1.0-x, a=0, bound=0;
+  int status=10;
+
+  if (npy_isnan(p) || npy_isnan(q) || npy_isnan(x) || npy_isnan(y) || npy_isnan(a) ||
+      npy_isnan(b) || npy_isnan(bound)) {
+      return NPY_NAN;
+  }
+
   F_FUNC(cdfbet,CDFBET)(&which, &p, &q, &x, &y, &a, &b, &status, &bound);
   if (status) {
     show_error("cdfbet3", status, bound);
-    if ((status < 0) || (status==3) || (status==4)) return (NPY_NAN);
+    if ((status < 0) || (status==3) || (status==4) || (status==10)) return (NPY_NAN);
     if ((status == 1) || (status == 2)) return bound;
   }
   return a;
@@ -70,13 +76,18 @@ double cdfbet3_wrap(double p, double b, double x) {
 
 double cdfbet4_wrap(double a, double p, double x) {
   int which=4;
-  double q=1.0-p, y=1.0-x, b, bound;
-  int status;  
-  
+  double q=1.0-p, y=1.0-x, b=0, bound=0;
+  int status=10;
+
+  if (npy_isnan(p) || npy_isnan(q) || npy_isnan(x) || npy_isnan(y) || npy_isnan(a) ||
+      npy_isnan(b) || npy_isnan(bound)) {
+      return NPY_NAN;
+  }
+
   F_FUNC(cdfbet,CDFBET)(&which, &p, &q, &x, &y, &a, &b, &status, &bound);
   if (status) {
     show_error("cdfbet4", status, bound);
-    if ((status < 0) || (status==3) || (status==4)) return (NPY_NAN);
+    if ((status < 0) || (status==3) || (status==4) || (status==10)) return (NPY_NAN);
     if ((status == 1) || (status == 2)) return bound;
   }
   return b;
@@ -87,13 +98,18 @@ extern void F_FUNC(cdfbin,CDFBIN)(int*,double*,double*,double*,double*,double*,d
 
 double cdfbin2_wrap(double p, double xn, double pr) {
   int which=2;
-  double q=1.0-p, s, ompr=1.0-pr, bound;
-  int status;  
+  double q=1.0-p, s=0, ompr=1.0-pr, bound=0;
+  int status=5;
   
+  if (npy_isnan(p) || npy_isnan(q) || npy_isnan(s) || npy_isnan(xn) || npy_isnan(pr) ||
+      npy_isnan(ompr) || npy_isnan(bound)) {
+      return NPY_NAN;
+  }
+
   F_FUNC(cdfbin,CDFBIN)(&which, &p, &q, &s, &xn, &pr, &ompr, &status, &bound);
   if (status) {
     show_error("cdfbin2", status, bound);
-    if ((status < 0) || (status==3) || (status==4)) return (NPY_NAN);
+    if ((status < 0) || (status==3) || (status==4) || (status==10)) return (NPY_NAN);
     if ((status == 1) || (status == 2)) return bound;
   }
   return s;
@@ -101,13 +117,18 @@ double cdfbin2_wrap(double p, double xn, double pr) {
 
 double cdfbin3_wrap(double s, double p, double pr) {
   int which=3;
-  double q=1.0-p, xn, ompr=1.0-pr, bound;
-  int status;  
+  double q=1.0-p, xn=0, ompr=1.0-pr, bound=0;
+  int status=5;
+
+  if (npy_isnan(p) || npy_isnan(q) || npy_isnan(s) || npy_isnan(xn) || npy_isnan(pr) ||
+      npy_isnan(ompr) || npy_isnan(bound)) {
+      return NPY_NAN;
+  }
 
   F_FUNC(cdfbin,CDFBIN)(&which, &p, &q, &s, &xn, &pr, &ompr, &status, &bound); 
   if (status) {
     show_error("cdfbin3", status, bound);
-    if ((status < 0) || (status==3) || (status==4)) return (NPY_NAN);
+    if ((status < 0) || (status==3) || (status==4) || (status==10)) return (NPY_NAN);
     if ((status == 1) || (status == 2)) return bound;
   }
   return xn;
@@ -116,13 +137,17 @@ double cdfbin3_wrap(double s, double p, double pr) {
 extern void F_FUNC(cdfchi,CDFCHI)(int*,double*,double*,double*,double*,int*,double*);
 double cdfchi3_wrap(double p, double x){
   int which=3;
-  double q=1.0-p, df, bound;
-  int status;  
+  double q=1.0-p, df=0, bound=0;
+  int status=5;
+
+  if (npy_isnan(p) || npy_isnan(q) || npy_isnan(x) || npy_isnan(df) || npy_isnan(bound)) {
+      return NPY_NAN;
+  }
 
   F_FUNC(cdfchi,CDFCHI)(&which, &p, &q, &x, &df, &status, &bound); 
   if (status) {
     show_error("cdfchi3", status, bound);
-    if ((status < 0) || (status==3) || (status==4)) return (NPY_NAN);
+    if ((status < 0) || (status==3) || (status==4) || (status==10)) return (NPY_NAN);
     if ((status == 1) || (status == 2)) return bound;
   }
   return df;
@@ -131,13 +156,18 @@ double cdfchi3_wrap(double p, double x){
 extern void F_FUNC(cdfchn,CDFCHN)(int*,double*,double*,double*,double*,double*,int*,double*);
 double cdfchn1_wrap(double x, double df, double nc) {
   int which=1;
-  double q, p, bound;
-  int status;  
+  double q=0, p=0, bound=0;
+  int status=5;
+
+  if (npy_isnan(p) || npy_isnan(q) || npy_isnan(x) || npy_isnan(df) || npy_isnan(nc) ||
+      npy_isnan(bound)) {
+      return NPY_NAN;
+  }
 
   F_FUNC(cdfchn,CDFCHN)(&which, &p, &q, &x, &df, &nc, &status, &bound); 
   if (status) {
     show_error("cdfchn1", status, bound);
-    if ((status < 0) || (status==3) || (status==4)) return (NPY_NAN);
+    if ((status < 0) || (status==3) || (status==4) || (status==10)) return (NPY_NAN);
     if ((status == 1) || (status == 2)) return bound;
   }
   return p;
@@ -145,26 +175,36 @@ double cdfchn1_wrap(double x, double df, double nc) {
 
 double cdfchn2_wrap(double p, double df, double nc) {
   int which=2;
-  double q=1.0-p, x, bound;
-  int status;  
+  double q=1.0-p, x=0, bound=0;
+  int status=5;
+
+  if (npy_isnan(p) || npy_isnan(q) || npy_isnan(x) || npy_isnan(df) || npy_isnan(nc) ||
+      npy_isnan(bound)) {
+      return NPY_NAN;
+  }
 
   F_FUNC(cdfchn,CDFCHN)(&which, &p, &q, &x, &df, &nc, &status, &bound); 
   if (status) {
     show_error("cdfchn2", status, bound);
-    if ((status < 0) || (status==3) || (status==4)) return (NPY_NAN);
+    if ((status < 0) || (status==3) || (status==4) || (status==10)) return (NPY_NAN);
   }
   return x;
 }
 
 double cdfchn3_wrap(double x, double p, double nc) {
   int which=3;
-  double q=1.0-p, df, bound;
-  int status;  
+  double q=1.0-p, df=0, bound=0;
+  int status=1;
+
+  if (npy_isnan(p) || npy_isnan(q) || npy_isnan(x) || npy_isnan(df) || npy_isnan(nc) ||
+      npy_isnan(bound)) {
+      return NPY_NAN;
+  }
 
   F_FUNC(cdfchn,CDFCHN)(&which, &p, &q, &x, &df, &nc, &status, &bound); 
   if (status) {
     show_error("cdfchn3", status, bound);
-    if ((status < 0) || (status==3) || (status==4)) return (NPY_NAN);
+    if ((status < 0) || (status==3) || (status==4) || (status==10)) return (NPY_NAN);
     if ((status == 1) || (status == 2)) return bound;
   }
   return df;
@@ -172,13 +212,18 @@ double cdfchn3_wrap(double x, double p, double nc) {
 
 double cdfchn4_wrap(double x, double df, double p) {
   int which=4;
-  double q=1.0-p, nc, bound;
-  int status;  
+  double q=1.0-p, nc=0, bound=0;
+  int status=10;
+
+  if (npy_isnan(p) || npy_isnan(q) || npy_isnan(x) || npy_isnan(df) || npy_isnan(nc) ||
+      npy_isnan(bound)) {
+      return NPY_NAN;
+  }
 
   F_FUNC(cdfchn,CDFCHN)(&which, &p, &q, &x, &df, &nc, &status, &bound); 
   if (status) {
     show_error("cdfchn", status, bound);
-    if ((status < 0) || (status==3) || (status==4)) return (NPY_NAN);
+    if ((status < 0) || (status==3) || (status==4) || (status==10)) return (NPY_NAN);
     if ((status == 1) || (status == 2)) return bound;
   }
   return nc;
@@ -189,12 +234,12 @@ extern void F_FUNC(cdff,CDFF)(int*,double*,double*,double*,double*,double*,int*,
 double cdff1_wrap(double dfn, double dfd, double f) {
   int which=1;
   double q, p, bound;
-  int status;
+  int status=10;
 
   F_FUNC(cdff,CDFF)(&which, &p, &q, &f, &dfn, &dfd, &status, &bound); 
   if (status) {
     show_error("cdff1", status, bound);
-    if ((status < 0) || (status==3) || (status==4)) return (NPY_NAN);
+    if ((status < 0) || (status==3) || (status==4) || (status==10)) return (NPY_NAN);
   }
   return p;
 }
@@ -202,12 +247,12 @@ double cdff1_wrap(double dfn, double dfd, double f) {
 double cdff2_wrap(double dfn, double dfd, double p) {
   int which=2;
   double q=1.0-p, f, bound;
-  int status;
+  int status=10;
 
   F_FUNC(cdff,CDFF)(&which, &p, &q, &f, &dfn, &dfd, &status, &bound); 
   if (status) {
     show_error("cdff2", status, bound);
-    if ((status < 0) || (status==3) || (status==4)) return (NPY_NAN);
+    if ((status < 0) || (status==3) || (status==4) || (status==10)) return (NPY_NAN);
   }
   return f;
 }
@@ -216,13 +261,18 @@ double cdff2_wrap(double dfn, double dfd, double p) {
 /* This seem to give some trouble.  No idea why... */
 double cdff3_wrap(double p, double dfd, double f) {
   int which=3;
-  double q=1.0-p, dfn, bound;
-  int status;
+  double q=1.0-p, dfn=0, bound=0;
+  int status=10;
+
+  if (npy_isnan(p) || npy_isnan(q) || npy_isnan(f) || npy_isnan(dfn) || npy_isnan(dfd) ||
+      npy_isnan(bound)) {
+      return NPY_NAN;
+  }
 
   F_FUNC(cdff,CDFF)(&which, &p, &q, &f, &dfn, &dfd, &status, &bound); 
   if (status) {
     show_error("cdff3", status, bound);
-    if ((status < 0) || (status==3) || (status==4)) return (NPY_NAN);
+    if ((status < 0) || (status==3) || (status==4) || (status==10)) return (NPY_NAN);
     if ((status == 1) || (status == 2)) return bound;
   }
   return dfn;
@@ -230,13 +280,18 @@ double cdff3_wrap(double p, double dfd, double f) {
 
 double cdff4_wrap(double dfn, double p, double f) {
   int which=4;
-  double q=1.0-p, dfd, bound;
-  int status;  
+  double q=1.0-p, dfd=0, bound=0;
+  int status=10;
+
+  if (npy_isnan(p) || npy_isnan(q) || npy_isnan(f) || npy_isnan(dfn) || npy_isnan(dfd) ||
+      npy_isnan(bound)) {
+      return NPY_NAN;
+  }
 
   F_FUNC(cdff,CDFF)(&which, &p, &q, &f, &dfn, &dfd, &status, &bound); 
   if (status) {
     show_error("cdff4", status, bound);
-    if ((status < 0) || (status==3) || (status==4)) return (NPY_NAN);
+    if ((status < 0) || (status==3) || (status==4) || (status==10)) return (NPY_NAN);
     if ((status == 1) || (status == 2)) return bound;
   }
   return dfd;
@@ -246,26 +301,36 @@ double cdff4_wrap(double dfn, double p, double f) {
 extern void F_FUNC(cdffnc,CDFFNC)(int*,double*,double*,double*,double*,double*,double*,int*,double*);
 double cdffnc1_wrap(double dfn, double dfd, double nc, double f) {
   int which=1;
-  double q, p, bound;
-  int status;
+  double q=0, p=0, bound=0;
+  int status=10;
+
+  if (npy_isnan(p) || npy_isnan(q) || npy_isnan(f) || npy_isnan(dfn) || npy_isnan(dfd) ||
+      npy_isnan(nc) || npy_isnan(bound)) {
+      return NPY_NAN;
+  }
 
   F_FUNC(cdffnc,CDFFNC)(&which, &p, &q, &f, &dfn, &dfd, &nc, &status, &bound); 
   if (status) {
     show_error("cdffnc1", status, bound);
-    if ((status < 0) || (status==3) || (status==4)) return (NPY_NAN);
+    if ((status < 0) || (status==3) || (status==4) || (status==10)) return (NPY_NAN);
   }
   return p;
 }
 
 double cdffnc2_wrap(double dfn, double dfd, double nc, double p) {
   int which=2;
-  double q=1.0-p, f, bound;
-  int status;
+  double q=1.0-p, f=0, bound=0;
+  int status=10;
+
+  if (npy_isnan(p) || npy_isnan(q) || npy_isnan(f) || npy_isnan(dfn) || npy_isnan(dfd) ||
+      npy_isnan(nc) || npy_isnan(bound)) {
+      return NPY_NAN;
+  }
 
   F_FUNC(cdffnc,CDFFNC)(&which, &p, &q, &f, &dfn, &dfd, &nc, &status, &bound); 
   if (status) {
     show_error("cdffnc2", status, bound);
-    if ((status < 0) || (status==3) || (status==4)) return (NPY_NAN);
+    if ((status < 0) || (status==3) || (status==4) || (status==10)) return (NPY_NAN);
     if ((status == 1) || (status == 2)) return bound;
   }
   return f;
@@ -274,26 +339,36 @@ double cdffnc2_wrap(double dfn, double dfd, double nc, double p) {
 
 double cdffnc3_wrap(double p, double dfd, double nc, double f) {
   int which=3;
-  double q=1.0-p, dfn, bound;
-  int status;
+  double q=1.0-p, dfn=0, bound=0;
+  int status=10;
+
+  if (npy_isnan(p) || npy_isnan(q) || npy_isnan(f) || npy_isnan(dfn) || npy_isnan(dfd) ||
+      npy_isnan(nc) || npy_isnan(bound)) {
+      return NPY_NAN;
+  }
 
   F_FUNC(cdffnc,CDFFNC)(&which, &p, &q, &f, &dfn, &dfd, &nc, &status, &bound); 
   if (status) {
     show_error("cdffnc3", status, bound);
-    if ((status < 0) || (status==3) || (status==4)) return (NPY_NAN);
+    if ((status < 0) || (status==3) || (status==4) || (status==10)) return (NPY_NAN);
     if ((status == 1) || (status == 2)) return bound;
   }
   return dfn;
 }
 double cdffnc4_wrap(double dfn, double p, double nc, double f) {
   int which=4;
-  double q=1.0-p, dfd, bound;
-  int status;
+  double q=1.0-p, dfd=0, bound=0;
+  int status=10;
+
+  if (npy_isnan(p) || npy_isnan(q) || npy_isnan(f) || npy_isnan(dfn) || npy_isnan(dfd) ||
+      npy_isnan(nc) || npy_isnan(bound)) {
+      return NPY_NAN;
+  }
 
   F_FUNC(cdffnc,CDFFNC)(&which, &p, &q, &f, &dfn, &dfd, &nc, &status, &bound); 
   if (status) {
     show_error("cdffnc4", status, bound);
-    if ((status < 0) || (status==3) || (status==4)) return (NPY_NAN);
+    if ((status < 0) || (status==3) || (status==4) || (status==10)) return (NPY_NAN);
     if ((status == 1) || (status == 2)) return bound;
   }
   return dfd;
@@ -301,13 +376,18 @@ double cdffnc4_wrap(double dfn, double p, double nc, double f) {
 
 double cdffnc5_wrap(double dfn, double dfd, double p, double f) {
   int which=5;
-  double q=1.0-p, nc, bound;
-  int status;
+  double q=1.0-p, nc=0, bound=0;
+  int status=10;
+
+  if (npy_isnan(p) || npy_isnan(q) || npy_isnan(f) || npy_isnan(dfn) || npy_isnan(dfd) ||
+      npy_isnan(nc) || npy_isnan(bound)) {
+      return NPY_NAN;
+  }
 
   F_FUNC(cdffnc,CDFFNC)(&which, &p, &q, &f, &dfn, &dfd, &nc, &status, &bound); 
   if (status) {
     show_error("cdffnc5", status, bound);
-    if ((status < 0) || (status==3) || (status==4)) return (NPY_NAN);
+    if ((status < 0) || (status==3) || (status==4) || (status==10)) return (NPY_NAN);
     if ((status == 1) || (status == 2)) return bound;
   }
   return nc;
@@ -319,26 +399,36 @@ double cdffnc5_wrap(double dfn, double dfd, double p, double f) {
 extern void F_FUNC(cdfgam,CDFGAM)(int*,double*,double*,double*,double*,double*,int*,double*);
 double cdfgam1_wrap(double scl, double shp, double x) {
   int which=1;
-  double q, p, bound;
-  int status;
+  double q=0, p=0, bound=0;
+  int status=10;
+
+  if (npy_isnan(p) || npy_isnan(q) || npy_isnan(x) || npy_isnan(shp) || npy_isnan(scl) ||
+      npy_isnan(bound)) {
+      return NPY_NAN;
+  }
 
   F_FUNC(cdfgam,CDFGAM)(&which, &p, &q, &x, &shp, &scl, &status, &bound); 
   if (status) {
     show_error("cdfgam1", status, bound);
-    if ((status < 0) || (status==3) || (status==4)) return (NPY_NAN);
+    if ((status < 0) || (status==3) || (status==4) || (status==10)) return (NPY_NAN);
   }
   return p;
 }
 
 double cdfgam2_wrap(double scl, double shp, double p) {
   int which=2;
-  double q=1.0-p, x, bound;
-  int status;
+  double q=1.0-p, x=0, bound=0;
+  int status=10;
+
+  if (npy_isnan(p) || npy_isnan(q) || npy_isnan(x) || npy_isnan(shp) || npy_isnan(scl) ||
+      npy_isnan(bound)) {
+      return NPY_NAN;
+  }
 
   F_FUNC(cdfgam,CDFGAM)(&which, &p, &q, &x, &shp, &scl,  &status, &bound); 
   if (status) {
     show_error("cdfgam2", status, bound);
-    if ((status < 0) || (status==3) || (status==4)) return (NPY_NAN);
+    if ((status < 0) || (status==3) || (status==4) || (status==10)) return (NPY_NAN);
     if ((status == 1) || (status == 2)) return bound;
   }
   return x;
@@ -346,13 +436,18 @@ double cdfgam2_wrap(double scl, double shp, double p) {
 
 double cdfgam3_wrap(double scl, double p, double x) {
   int which=3;
-  double q=1.0-p, shp, bound;
-  int status;
+  double q=1.0-p, shp=0, bound=0;
+  int status=10;
+
+  if (npy_isnan(p) || npy_isnan(q) || npy_isnan(x) || npy_isnan(shp) || npy_isnan(scl) ||
+      npy_isnan(bound)) {
+      return NPY_NAN;
+  }
 
   F_FUNC(cdfgam,CDFGAM)(&which, &p, &q, &x, &shp, &scl, &status, &bound); 
   if (status) {
     show_error("cdfgam3", status, bound);
-    if ((status < 0) || (status==3) || (status==4)) return (NPY_NAN);
+    if ((status < 0) || (status==3) || (status==4) || (status==10)) return (NPY_NAN);
     if ((status == 1) || (status == 2)) return bound;
   }
   return shp;
@@ -360,13 +455,18 @@ double cdfgam3_wrap(double scl, double p, double x) {
 
 double cdfgam4_wrap(double p, double shp, double x) {
   int which=4;
-  double q=1.0-p, scl, bound;
-  int status;
+  double q=1.0-p, scl=0, bound=0;
+  int status=10;
+
+  if (npy_isnan(p) || npy_isnan(q) || npy_isnan(x) || npy_isnan(shp) || npy_isnan(scl) ||
+      npy_isnan(bound)) {
+      return NPY_NAN;
+  }
 
   F_FUNC(cdfgam,CDFGAM)(&which, &p, &q, &x, &shp, &scl, &status, &bound); 
   if (status) {
     show_error("cdfgam4", status, bound);
-    if ((status < 0) || (status==3) || (status==4)) return (NPY_NAN);
+    if ((status < 0) || (status==3) || (status==4) || (status==10)) return (NPY_NAN);
     if ((status == 1) || (status == 2)) return bound;
   }
   return scl;
@@ -375,13 +475,18 @@ double cdfgam4_wrap(double p, double shp, double x) {
 extern void F_FUNC(cdfnbn,CDFNBN)(int*,double*,double*,double*,double*,double*,double*,int*,double*);
 double cdfnbn2_wrap(double p, double xn, double pr) {
   int which=2;
-  double q=1.0-p, s, ompr=1.0-pr, bound;
-  int status;  
+  double q=1.0-p, s=0, ompr=1.0-pr, bound=0;
+  int status=10;
   
+  if (npy_isnan(p) || npy_isnan(q) || npy_isnan(s) || npy_isnan(xn) || npy_isnan(pr) ||
+      npy_isnan(ompr) || npy_isnan(bound)) {
+      return NPY_NAN;
+  }
+
   F_FUNC(cdfnbn,CDFNBN)(&which, &p, &q, &s, &xn, &pr, &ompr, &status, &bound);
   if (status) {
     show_error("cdfnbn2", status, bound);
-    if ((status < 0) || (status==3) || (status==4)) return (NPY_NAN);
+    if ((status < 0) || (status==3) || (status==4) || (status==10)) return (NPY_NAN);
     if ((status == 1) || (status == 2)) return bound;
   }
   return s;
@@ -389,13 +494,18 @@ double cdfnbn2_wrap(double p, double xn, double pr) {
 
 double cdfnbn3_wrap(double s, double p, double pr) {
   int which=3;
-  double q=1.0-p, xn, ompr=1.0-pr, bound;
-  int status;  
+  double q=1.0-p, xn=0, ompr=1.0-pr, bound=0;
+  int status=10;
+
+  if (npy_isnan(p) || npy_isnan(q) || npy_isnan(s) || npy_isnan(xn) || npy_isnan(pr) ||
+      npy_isnan(ompr) || npy_isnan(bound)) {
+      return NPY_NAN;
+  }
 
   F_FUNC(cdfnbn,CDFNBN)(&which, &p, &q, &s, &xn, &pr, &ompr, &status, &bound);
   if (status) {
     show_error("cdfnbn3", status, bound);
-    if ((status < 0) || (status==3) || (status==4)) return (NPY_NAN);
+    if ((status < 0) || (status==3) || (status==4) || (status==10)) return (NPY_NAN);
     if ((status == 1) || (status == 2)) return bound;
   }
   return xn;
@@ -404,13 +514,18 @@ double cdfnbn3_wrap(double s, double p, double pr) {
 extern void F_FUNC(cdfnor,CDFNOR)(int*,double*,double*,double*,double*,double*,int*,double*);
 double cdfnor3_wrap(double p, double std, double x) {
   int which=3;
-  double q=1.0-p, mn, bound;
-  int status;  
+  double q=1.0-p, mn=0, bound=0;
+  int status=10;
+
+  if (npy_isnan(p) || npy_isnan(q) || npy_isnan(x) || npy_isnan(mn) || npy_isnan(std) ||
+      npy_isnan(bound)) {
+      return NPY_NAN;
+  }
 
   F_FUNC(cdfnor,CDFNOR)(&which, &p, &q, &x, &mn, &std, &status, &bound); 
   if (status) {
     show_error("cdfnor3", status, bound);
-    if ((status < 0) || (status==3) || (status==4)) return (NPY_NAN);
+    if ((status < 0) || (status==3) || (status==4) || (status==10)) return (NPY_NAN);
     if ((status == 1) || (status == 2)) return bound;
   }
   return mn;
@@ -418,13 +533,18 @@ double cdfnor3_wrap(double p, double std, double x) {
 
 double cdfnor4_wrap(double mn, double p, double x) {
   int which=4;
-  double q=1.0-p, std, bound;
-  int status;  
+  double q=1.0-p, std=0, bound=0;
+  int status=10;
+
+  if (npy_isnan(p) || npy_isnan(q) || npy_isnan(x) || npy_isnan(mn) || npy_isnan(std) ||
+      npy_isnan(bound)) {
+      return NPY_NAN;
+  }
 
   F_FUNC(cdfnor,CDFNOR)(&which, &p, &q, &x, &mn, &std, &status, &bound); 
   if (status) {
     show_error("cdfnor4", status, bound);
-    if ((status < 0) || (status==3) || (status==4)) return (NPY_NAN);
+    if ((status < 0) || (status==3) || (status==4) || (status==10)) return (NPY_NAN);
     if ((status == 1) || (status == 2)) return bound;
   }
   return std;
@@ -433,13 +553,17 @@ double cdfnor4_wrap(double mn, double p, double x) {
 extern void F_FUNC(cdfpoi,CDFPOI)(int*,double*,double*,double*,double*,int*,double*);
 double cdfpoi2_wrap(double p, double xlam){
   int which=2;
-  double q=1.0-p, s, bound;
-  int status;  
+  double q=1.0-p, s=0, bound=0;
+  int status=10;
+
+  if (npy_isnan(p) || npy_isnan(q) || npy_isnan(s) || npy_isnan(xlam) || npy_isnan(bound)) {
+      return NPY_NAN;
+  }
 
   F_FUNC(cdfpoi,CDFPOI)(&which, &p, &q, &s, &xlam, &status, &bound); 
   if (status) {
     show_error("cdfpoi2", status, bound);
-    if ((status < 0) || (status==3) || (status==4)) return (NPY_NAN);
+    if ((status < 0) || (status==3) || (status==4) || (status==10)) return (NPY_NAN);
     if ((status == 1) || (status == 2)) return bound;
   }
   return s;
@@ -448,26 +572,34 @@ double cdfpoi2_wrap(double p, double xlam){
 extern void F_FUNC(cdft,CDFT)(int*,double*,double*,double*,double*,int*,double*);
 double cdft1_wrap(double df, double t){
   int which=1;
-  double q, p, bound;
-  int status;  
+  double q=0, p=0, bound=0;
+  int status=10;
+
+  if (npy_isnan(p) || npy_isnan(q) || npy_isnan(t) || npy_isnan(df) || npy_isnan(bound)) {
+      return NPY_NAN;
+  }
 
   F_FUNC(cdft,CDFT)(&which, &p, &q, &t, &df, &status, &bound); 
   if (status) {
     show_error("cdft1", status, bound);
-    if ((status < 0) || (status==3) || (status==4)) return (NPY_NAN);
+    if ((status < 0) || (status==3) || (status==4) || (status==10)) return (NPY_NAN);
   }
   return p;
 }
 
 double cdft2_wrap(double df, double p){
   int which=2;
-  double q=1.0-p, t, bound;
-  int status;  
+  double q=1.0-p, t=0, bound=0;
+  int status=10;
+
+  if (npy_isnan(p) || npy_isnan(q) || npy_isnan(t) || npy_isnan(df) || npy_isnan(bound)) {
+      return NPY_NAN;
+  }
 
   F_FUNC(cdft,CDFT)(&which, &p, &q, &t, &df, &status, &bound); 
   if (status) {
     show_error("cdft2", status, bound);
-    if ((status < 0) || (status==3) || (status==4)) return (NPY_NAN);
+    if ((status < 0) || (status==3) || (status==4) || (status==10)) return (NPY_NAN);
     if ((status == 1) || (status == 2)) return bound;
   }
   return t;
@@ -475,13 +607,17 @@ double cdft2_wrap(double df, double p){
 
 double cdft3_wrap(double p, double t){
   int which=3;
-  double q=1.0-p, df, bound;
-  int status;  
+  double q=1.0-p, df=0, bound=0;
+  int status=10;
+
+  if (npy_isnan(p) || npy_isnan(q) || npy_isnan(t) || npy_isnan(df) || npy_isnan(bound)) {
+      return NPY_NAN;
+  }
 
   F_FUNC(cdft,CDFT)(&which, &p, &q, &t, &df, &status, &bound); 
   if (status) {
     show_error("cdft3", status, bound);
-    if ((status < 0) || (status==3) || (status==4)) return (NPY_NAN);
+    if ((status < 0) || (status==3) || (status==4) || (status==10)) return (NPY_NAN);
     if ((status == 1) || (status == 2)) return bound;
   }
   return df;
@@ -490,13 +626,18 @@ double cdft3_wrap(double p, double t){
 extern void F_FUNC(cdftnc,CDFTNC)(int*,double*,double*,double*,double*,double*,int*,double*);
 double cdftnc1_wrap(double df, double nc, double t) {
   int which=1;
-  double q, p, bound;
-  int status;  
+  double q=0, p=0, bound=0;
+  int status=10;
+
+  if (npy_isnan(p) || npy_isnan(q) || npy_isnan(t) || npy_isnan(df) ||
+      npy_isnan(nc) || npy_isnan(bound)) {
+      return NPY_NAN;
+  }
 
   F_FUNC(cdftnc,CDFTNC)(&which, &p, &q, &t, &df, &nc, &status, &bound); 
   if (status) {
     show_error("cdftnc1", status, bound);
-    if ((status < 0) || (status==3) || (status==4)) return (NPY_NAN);
+    if ((status < 0) || (status==3) || (status==4) || (status==10)) return (NPY_NAN);
     if ((status == 1) || (status == 2)) return bound;
   }
   return p;
@@ -504,13 +645,18 @@ double cdftnc1_wrap(double df, double nc, double t) {
 
 double cdftnc2_wrap(double df, double nc, double p) {
   int which=2;
-  double q=1.0-p, t, bound;
-  int status;  
+  double q=1.0-p, t=0, bound=0;
+  int status=10;
+
+  if (npy_isnan(p) || npy_isnan(q) || npy_isnan(t) || npy_isnan(df) ||
+      npy_isnan(nc) || npy_isnan(bound)) {
+      return NPY_NAN;
+  }
 
   F_FUNC(cdftnc,CDFTNC)(&which, &p, &q, &t, &df, &nc, &status, &bound); 
   if (status) {
     show_error("cdftnc2", status, bound);
-    if ((status < 0) || (status==3) || (status==4)) return (NPY_NAN);
+    if ((status < 0) || (status==3) || (status==4) || (status==10)) return (NPY_NAN);
     if ((status == 1) || (status == 2)) return bound;
   }
   return t;
@@ -518,13 +664,18 @@ double cdftnc2_wrap(double df, double nc, double p) {
 
 double cdftnc3_wrap(double p, double nc, double t) {
   int which=3;
-  double q=1.0-p, df, bound;
-  int status;  
+  double q=1.0-p, df=0, bound=0;
+  int status=10;
+
+  if (npy_isnan(p) || npy_isnan(q) || npy_isnan(t) || npy_isnan(df) ||
+      npy_isnan(nc) || npy_isnan(bound)) {
+      return NPY_NAN;
+  }
 
   F_FUNC(cdftnc,CDFTNC)(&which, &p, &q, &t, &df, &nc, &status, &bound); 
   if (status) {
     show_error("cdftnc3", status, bound);
-    if ((status < 0) || (status==3) || (status==4)) return (NPY_NAN);
+    if ((status < 0) || (status==3) || (status==4) || (status==10)) return (NPY_NAN);
     if ((status == 1) || (status == 2)) return bound;
   }
   return df;
@@ -532,13 +683,18 @@ double cdftnc3_wrap(double p, double nc, double t) {
 
 double cdftnc4_wrap(double df, double p, double t) {
   int which=4;
-  double q=1.0-p, nc, bound;
-  int status;  
+  double q=1.0-p, nc=0, bound=0;
+  int status=10;
+
+  if (npy_isnan(p) || npy_isnan(q) || npy_isnan(t) || npy_isnan(df) ||
+      npy_isnan(nc) || npy_isnan(bound)) {
+      return NPY_NAN;
+  }
 
   F_FUNC(cdftnc,CDFTNC)(&which, &p, &q, &t, &df, &nc, &status, &bound); 
   if (status) {
     show_error("cdftnc4", status, bound);
-    if ((status < 0) || (status==3) || (status==4)) return (NPY_NAN);
+    if ((status < 0) || (status==3) || (status==4) || (status==10)) return (NPY_NAN);
     if ((status == 1) || (status == 2)) return bound;
 
   }
