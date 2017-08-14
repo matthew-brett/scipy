@@ -19,12 +19,18 @@ environment:
       APPVEYOR_SAVE_CACHE_ON_ERROR: true
       APPVEYOR_SKIP_FINALIZE_ON_EXIT: true
       TEST_TIMEOUT: 1000
+      NP_BUILD_DEP: numpy==1.8.2
+      NP_TEST_DEP: numpy==1.8.2
+      BUILD_DEPS: cython
+      TEST_DEPS: nose pytest-timeout pytest-xdist pytest-env pytest-faulthandler Pillow mpmath matplotlib
 
   matrix:
     - PYTHON: C:\Python36
       PYTHON_VERSION: 3.6
       PYTHON_ARCH: 32
       TEST_MODE: full
+      NP_BUILD_DEP: numpy==1.11.3
+      NP_TEST_DEP: numpy==1.11.3
 
    #- PYTHON: C:\Python27-x64
    #  PYTHON_VERSION: 2.7
@@ -47,11 +53,12 @@ environment:
    #  SKIP_NOTAG: true
       TEST_MODE: full
 
-   #- PYTHON: C:\Python34
-   #  PYTHON_VERSION: 3.4
-   #  PYTHON_ARCH: 32
+    - PYTHON: C:\Python34
+      PYTHON_VERSION: 3.4
+      PYTHON_ARCH: 32
    #  SKIP_NOTAG: true
-   #  TEST_MODE: full
+      TEST_MODE: full
+      NP_TEST_DEP: numpy==1.9.3
 
    #- PYTHON: C:\Python35-x64
    #  PYTHON_VERSION: 3.5
@@ -64,6 +71,7 @@ environment:
       PYTHON_ARCH: 32
    #  SKIP_NOTAG: true
       TEST_MODE: full
+      NP_TEST_DEP: numpy==1.9.3
 
 matrix:
   allow_failures:
@@ -138,8 +146,8 @@ install:
   # Upgrade to the latest pip.
   - '%CMD_IN_ENV% python -m pip install -U pip setuptools wheel'
 
-  # Install the scipy test dependencies.
-  - '%CMD_IN_ENV% pip install -U --timeout 5 --retries 2 -r tools/ci/appveyor/requirements.txt'
+  # Install the scipy build dependencies.
+  - '%CMD_IN_ENV% pip install -U --timeout 5 --retries 2 %NP_BUILD_DEP% %BUILD_DEPS%'
 
   # Replace numpy distutils with a version that can build with msvc + mingw-gfortran
   - ps: |
@@ -171,6 +179,8 @@ build_script:
       }
 
 test_script:
+  # Install the scipy test dependencies.
+  - '%CMD_IN_ENV% pip install -U --timeout 5 --retries 2 %NP_TEST_DEP% %TEST_DEPS%'
   - python runtests.py -vv -n -m %TEST_MODE% -- -n6 --timeout=%TEST_TIMEOUT% --junitxml=%cd%\junit-results.xml -rfEX
 
 after_build:
