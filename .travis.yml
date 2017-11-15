@@ -8,40 +8,6 @@ env:
    - PRE_WHEELS="https://7933911d6844c6c53a7d-47bd50c35cd79bd838daf386af554a83.ssl.cf2.rackcdn.com"
 matrix:
   include:
-    - python: 2.7
-      env:
-        - PYFLAKES=1
-        - PEP8=1
-        - NUMPYSPEC=numpy
-      before_install:
-        - pip install pep8==1.7.0
-        - pip install pyflakes==1.1.0
-      script:
-        - PYFLAKES_NODOCTEST=1 pyflakes scipy benchmarks/benchmarks | grep -E -v 'unable to detect undefined names|assigned to but never used|imported but unused|redefinition of unused|may be undefined, or defined from star imports' > test.out; cat test.out; test \! -s test.out
-        - pep8 scipy benchmarks/benchmarks
-    - python: 2.7
-      env:
-        - TESTMODE=fast
-        - COVERAGE=
-        - NUMPYSPEC="--pre --upgrade --timeout=60 -f $PRE_WHEELS numpy"
-    - python: 3.6
-      env:
-        - TESTMODE=full
-        - COVERAGE=--coverage
-        - NUMPYSPEC=numpy
-    - python: 3.5
-      env:
-        - TESTMODE=fast
-        - COVERAGE=
-        - USE_WHEEL=1
-        - REFGUIDE_CHECK=1
-    - python: 3.4
-      env:
-        - TESTMODE=fast
-        - COVERAGE=
-        - NUMPYSPEC="numpy==1.8.2"
-        - USE_SDIST=1
-        - OPTIMIZE=-OO
     - os: osx
       language: generic
       env:
@@ -77,7 +43,7 @@ before_install:
     elif [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
       brew install gcc ccache libmpc
       touch config.sh
-      git clone --depth=1 https://github.com/matthew-brett/multibuild.git
+      git clone -b tmp2 --depth=1 https://github.com/matthew-brett/multibuild.git
       source multibuild/common_utils.sh
       source multibuild/travis_steps.sh
       before_install
