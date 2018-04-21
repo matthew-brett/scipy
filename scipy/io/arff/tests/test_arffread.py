@@ -43,6 +43,8 @@ expect_missing = np.empty(3, [('yop', float), ('yap', float)])
 expect_missing['yop'] = expect_missing_raw[:, 0]
 expect_missing['yap'] = expect_missing_raw[:, 1]
 
+sparse = pjoin(data_path, 'sparse.arff')
+
 
 class TestData(object):
     def test1(self):
@@ -88,6 +90,7 @@ class TestData(object):
 
         assert_(data1 == data2)
         assert_(repr(meta1) == repr(meta2))
+
 
 class TestMissingData(object):
     def test_missing(self):
@@ -257,3 +260,9 @@ class TestDateAttribute(object):
 
     def test_datetime_timezone(self):
         assert_raises(ValueError, loadarff, test8)
+
+
+class TestSparseData(object):
+
+    def test_sparse(self):
+        data, meta = loadarff(sparse)
