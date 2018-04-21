@@ -37,9 +37,9 @@ r_comment = re.compile(r'^%')
 r_empty = re.compile(r'^\s+$')
 # Match a header line, that is a line which starts by @ + a word
 r_headerline = re.compile(r'^@\S*')
-r_datameta = re.compile(r'^@[Dd][Aa][Tt][Aa]')
-r_relation = re.compile(r'^@[Rr][Ee][Ll][Aa][Tt][Ii][Oo][Nn]\s*(\S*)')
-r_attribute = re.compile(r'^@[Aa][Tt][Tt][Rr][Ii][Bb][Uu][Tt][Ee]\s*(..*$)')
+r_datameta = re.compile(r'^@data', re.I)
+r_relation = re.compile(r'^@relation\s*(\S*)', re.I)
+r_attribute = re.compile(r'^@attribute\s*(..*$)', re.I)
 
 # To get attributes name enclosed with ''
 r_comattrval = re.compile(r"'(..+)'\s+(..+$)")
