@@ -316,7 +316,20 @@ def tokenize_single_wcomma(val):
 
 
 def read_header(ofile):
-    """Read the header of the iterable ofile."""
+    """ Read the header of the iterable `ofile`
+
+    Parameters
+    ----------
+    ofile : iterable
+        Usually an open file, returning one line per iteration.
+
+    Returns
+    -------
+    relation: None or str
+        Name of dataset (if specified) from RELATION line, None otherwise.
+    attributes: list
+        List if (name, datatype) tuples from ATTRIBUTE lines.
+    """
     i = next(ofile)
 
     # Pass first comments
