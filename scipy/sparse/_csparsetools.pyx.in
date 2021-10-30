@@ -6,6 +6,8 @@
 Fast snippets for LIL matrices.
 """
 
+import numpy as np
+
 {{py:
 
 IDX_TYPES = {
@@ -25,9 +27,11 @@ VALUE_TYPES = {
     "uint64": "cnp.npy_uint64",
     "float32": "cnp.npy_float32",
     "float64": "cnp.npy_float64",
-    "longdouble": "long double",
-    "complex64": "float complex",
-    "complex128": "double complex",
+    "longdouble": "cnp.npy_longdouble",
+    "complex64": "cnp.complex64_t",
+    "complex128": "cnp.complex128_t",
+    # Need C typedef here to avoid bug in Cython indexing for clongdouble type.
+    # https://github.com/cython/cython/issues/4438
     "clongdouble": "long double complex",
 }
 
@@ -193,6 +197,15 @@ def _lil_flatten_to_array_{{NAME}}(object[:] input not None, cnp.ndarray[{{T}}] 
             pos += 1
 
 {{endfor}}
+
+# On NumPy compiled with MSVC, float64 is longdouble, and complex128 is
+# clongdouble; We might not be compiling with MSVC, so make that explicit.
+if np.dtype(np.complex128) == np.dtype(np.clongdouble):
+    # Redefine CLD to use LD path.
+    def _lil_flatten_to_array_clongdouble(object[:] input not None,
+                                          output not None):
+        return _lil_flatten_to_array_complex128(input,
+                                                output.view(np.complex128))
 
 {{define_dispatch_map('_LIL_FLATTEN_TO_ARRAY_DISPATCH', '_lil_flatten_to_array', VALUE_TYPES)}}
 
