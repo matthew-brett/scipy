@@ -3,7 +3,11 @@ is_windows = host_machine.system() == 'windows'
 
 if is_windows
   if meson.get_compiler('c').get_id() == 'gcc'
-    add_global_link_arguments('-lucrt', '-static', language: ['c', 'cpp', 'fortran'])
+    # Force gcc to float64 long doubles for compatibility with MSVC
+    # builds.
+    add_global_arguments('-mlong-double-64', language: ['c', 'cpp'])
+    add_global_link_arguments('-lucrt', '-static',
+      language: ['c', 'cpp'])
     # Manual add of MS_WIN64 macro when not using MSVC.
     # https://bugs.python.org/issue28267
     bitness = run_command('_build_utils/gcc_build_bitness.py').stdout().strip()
@@ -12,6 +16,9 @@ if is_windows
     endif
   endif
   if meson.get_compiler('fortran').get_id() == 'gcc'
+    # Force gfortran to float64 long doubles for compatibility with MSVC
+    # builds.
+    add_global_arguments('-mlong-double-64', language: ['fortran'])
     # Flag needed to work around BLAS and LAPACK Gfortran dependence on
     # undocumented C feature when passing single character string
     # arguments.
@@ -19,6 +26,7 @@ if is_windows
     # https://github.com/wch/r-source/blob/838f9d5a7be08f2a8c08e47bcd28756f5d0aac90/src/gnuwin32/MkRules.rules#L121
     add_global_arguments('-fno-optimize-sibling-calls',
       language: ['fortran'])
+    add_global_link_arguments('-lucrt', '-static', language: ['fortran'])
   endif
 endif
 
