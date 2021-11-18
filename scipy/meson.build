@@ -2,6 +2,7 @@
 is_windows = host_machine.system() == 'windows'
 
 if is_windows
+  gcc_link_args = ['-lucrt', '-static', '-Wl,-gc-sections', '-Wl,-s']
   if meson.get_compiler('c').get_id() == 'gcc'
     add_global_link_arguments('-lucrt', '-static', language: ['c', 'cpp', 'fortran'])
     # Manual add of MS_WIN64 macro when not using MSVC.
