@@ -5,8 +5,9 @@ from warnings import warn
 from textwrap import dedent
 from shutil import copyfile
 import pathlib
-import os
 import argparse
+
+import numpy as np
 
 from gen_func_defs_pxd import (  # type: ignore
     _gen_func_defs_pxd)
@@ -104,7 +105,13 @@ def _ufunc_gen(scipy_dist: str, types: list, ctor_args: tuple,
             '''))
 
         if has_NPY_LONGDOUBLE:
-            fp.write('ctypedef long double longdouble\n\n')
+            # NumPy long double may be identical to double (particularly MSVC)
+            # Best would be to test if long double == double for our current
+            # compiler, in which case this fix not necessary.
+            ld_str = ('long double'
+                      if np.dtype(np.double) != np.dtype(np.longdouble)
+                      else 'double')
+            fp.write(f'ctypedef {ld_str} longdouble\n\n')
         if has_NPY_FLOAT16:
             warn('Boost stats NPY_FLOAT16 ufunc generation not '
                  'currently not supported!')
