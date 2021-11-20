@@ -24,8 +24,10 @@ ctypedef fused np_complex_numeric_t:
 
 __all__ = ['bandwidth', 'issymmetric', 'ishermitian']
 
+# On NumPy compiled with MSVC, float64 is longdouble; We might not be compiling
+# with MSVC, so make that explicit.
+LD_IS_D = np.dtype(np.double) == np.dtype(np.longdouble)
 
-@cython.embedsignature(True)
 def bandwidth(a):
     """Return the lower and upper bandwidth of a 2D numeric array.
 
@@ -74,14 +76,18 @@ def bandwidth(a):
     ...               [0., 9., 0., 0., 7.]])
     >>> bandwidth(A)
     (3, 1)
-
     """
     if a.size == 0:
         return (0, 0)
-
     if a.ndim != 2:
         raise ValueError('Input array must be a 2D NumPy array.')
+    if LD_IS_D and a.dtype == np.longdouble:
+        a = a.view(np.float64)
+    return _bandwidth(a)
 
+
+@cython.embedsignature(True)
+def _bandwidth(a):
     if a.flags['C_CONTIGUOUS']:
         l, u = bandwidth_c(a)
     elif a.flags['F_CONTIGUOUS']:
@@ -170,7 +176,6 @@ cdef inline (int, int) band_check_internal_noncontig(np_numeric_t[:, :]A) nogil:
     return lower_band, upper_band
 
 
-@cython.embedsignature(True)
 def issymmetric(a, atol=None, rtol=None):
     """Check if a square 2D array is symmetric.
 
@@ -229,7 +234,6 @@ def issymmetric(a, atol=None, rtol=None):
     >>> Ac = np.array([[1. + 1.j, 3.j], [3.j, 2.]])
     >>> issymmetric(Ac)  # not Hermitian but symmetric
     True
-
     """
     if a.ndim != 2:
         raise ValueError('Input array must be a 2D NumPy array.')
@@ -237,7 +241,13 @@ def issymmetric(a, atol=None, rtol=None):
         raise ValueError('Input array must be square.')
     if a.size == 0:
         return True
+    if LD_IS_D and a.dtype == np.longdouble:
+        a = a.view(np.float64)
+    return _issymmetric(a, atol, rtol)
 
+
+@cython.embedsignature(True)
+def _issymmetric(a, atol=None, rtol=None):
     # It's not worth going element-by-element basis if comparison is inexact
     # Also integers do not have tolerances
     if (atol or rtol) and not np.issubdtype(a.dtype, np.integer):
@@ -299,7 +309,6 @@ cdef inline bint is_sym_her_real_noncontig_internal(np_numeric_t[:, :]A) nogil:
     return True
 
 
-@cython.embedsignature(True)
 def ishermitian(a, atol=None, rtol=None):
     """Check if a square 2D array is Hermitian.
 
@@ -370,7 +379,13 @@ def ishermitian(a, atol=None, rtol=None):
         raise ValueError('Input array must be square.')
     if a.size == 0:
         return True
+    if LD_IS_D and a.dtype == np.longdouble:
+        a = a.view(np.float64)
+    return _ishermitian(a, atol, rtol)
 
+
+@cython.embedsignature(True)
+def _ishermitian(a, atol=None, rtol=None):
     # It's not worth going element-by-element basis if comparison is inexact
     # Also integers do not have tolerances
     if (atol or rtol) and not np.issubdtype(a.dtype, np.integer):
