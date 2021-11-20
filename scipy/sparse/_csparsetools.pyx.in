@@ -15,6 +15,13 @@ IDX_TYPES = {
     "int64": "cnp.npy_int64",
 }
 
+import numpy as np
+
+# On NumPy compiled with MSVC, float64 is longdouble, and complex128 is
+# clongdouble; We might not be compiling with MSVC, so make that explicit.
+LD_IS_D = np.dtype(np.double) == np.dtype(np.longdouble)
+CLD_IS_CD = np.dtype(np.cdouble) == np.dtype(np.clongdouble)
+
 VALUE_TYPES = {
     "bool_": "cnp.npy_bool",
     "int8": "cnp.npy_int8",
@@ -34,6 +41,16 @@ VALUE_TYPES = {
     # https://github.com/cython/cython/issues/4438
     "clongdouble": "long double complex",
 }
+
+# Drop these types if not supported at extra precision
+VALUE_REMAP = {}
+if LD_IS_D:
+    VALUE_TYPES.pop('longdouble')
+    VALUE_REMAP['longdouble'] = 'float64'
+if CLD_IS_CD:
+    VALUE_TYPES.pop('clongdouble')
+    VALUE_REMAP['clongdouble'] = 'complex128'
+
 
 def get_dispatch(types):
     for pyname, cyname in types.items():
@@ -62,6 +79,13 @@ def define_dispatch_map2(map_name, prefix, types, types2):
             result.append('%s: %s,' % (a, b))
     result.append("}\n\n")
     return "\n".join(result)
+
+def define_value_remap(map_name, types):
+    result = ["cdef dict %s = {\n" % map_name]
+    for in_type, out_type in types.items():
+        result.append(f"np.dtype(np.{in_type}): np.{out_type},")
+    result.append("}\n\n")
+    return "\n".join(result)
 }}
 
 cimport cython
@@ -71,6 +95,7 @@ import numpy as np
 
 cnp.import_array()
 
+{{define_value_remap('_VALUE_REMAP', VALUE_REMAP)}}
 
 @cython.wraparound(False)
 cpdef lil_get1(cnp.npy_intp M, cnp.npy_intp N, object[:] rows, object[:] datas,
@@ -182,7 +207,10 @@ def _lil_get_lengths_{{NAME}}(object[:] input,
 
 def lil_flatten_to_array(object[:] input,
                          cnp.ndarray output):
-    return _LIL_FLATTEN_TO_ARRAY_DISPATCH[output.dtype](input, output)
+    dt = output.dtype
+    if dt in _VALUE_REMAP:
+        output = output.view(_VALUE_REMAP[dt])
+    return _LIL_FLATTEN_TO_ARRAY_DISPATCH[dt](input, output)
 
 {{for NAME, T in get_dispatch(VALUE_TYPES)}}
 @cython.boundscheck(False)
@@ -197,15 +225,6 @@ def _lil_flatten_to_array_{{NAME}}(object[:] input not None, cnp.ndarray[{{T}}] 
             pos += 1
 
 {{endfor}}
-
-# On NumPy compiled with MSVC, float64 is longdouble, and complex128 is
-# clongdouble; We might not be compiling with MSVC, so make that explicit.
-if np.dtype(np.complex128) == np.dtype(np.clongdouble):
-    # Redefine CLD to use LD path.
-    def _lil_flatten_to_array_clongdouble(object[:] input not None,
-                                          output not None):
-        return _lil_flatten_to_array_complex128(input,
-                                                output.view(np.complex128))
 
 {{define_dispatch_map('_LIL_FLATTEN_TO_ARRAY_DISPATCH', '_lil_flatten_to_array', VALUE_TYPES)}}
 
@@ -292,9 +311,13 @@ def lil_fancy_set(cnp.npy_intp M, cnp.npy_intp N,
         Values of items to set.
 
     """
-    if values.dtype == np.bool_:
+    dt = values.dtype
+    if dt == np.bool_:
         # Cython doesn't support np.bool_ as a memoryview type
         values = values.view(dtype=np.uint8)
+
+    if dt in _VALUE_REMAP:
+        values = values.view(_VALUE_REMAP[dt])
 
     assert i_idx.shape[0] == j_idx.shape[0] and i_idx.shape[1] == j_idx.shape[1]
     return _LIL_FANCY_SET_DISPATCH[i_idx.dtype, values.dtype](M, N, rows, data, i_idx, j_idx, values)
