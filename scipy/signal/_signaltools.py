@@ -4125,6 +4125,12 @@ def _validate_x(x):
     return x
 
 
+# On NumPy compiled with MSVC, float64 is longdouble, and complex128 is
+# clongdouble; We might not be compiling with MSVC, so make that explicit.
+LD_IS_D = np.dtype(np.double) == np.dtype(np.longdouble)
+CLD_IS_CD = np.dtype(np.cdouble) == np.dtype(np.clongdouble)
+
+
 def sosfilt(sos, x, axis=-1, zi=None):
     """
     Filter data along one dimension using cascaded second-order sections.
@@ -4225,6 +4231,11 @@ def sosfilt(sos, x, axis=-1, zi=None):
     x = np.array(x, dtype, order='C')  # make a copy, can modify in place
     zi = np.ascontiguousarray(np.reshape(zi, (-1, n_sections, 2)))
     sos = sos.astype(dtype, copy=False)
+    # Adjust to lower-precision Numpy types.
+    if LD_IS_D and dtype.char == 'g':
+        sos, x, zi = [p.view(np.float64) for p in (sos, x, zi)]
+    if CLD_IS_CD and dtype.char == 'G':
+        sos, x, zi = [p.view(np.complex128) for p in (sos, x, zi)]
     _sosfilt(sos, x, zi)
     x.shape = x_shape
     x = np.moveaxis(x, -1, axis)
