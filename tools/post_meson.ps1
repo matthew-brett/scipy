@@ -4,6 +4,10 @@ if ($args.count -eq 0) {
     exit 1
 }
 $build_path = Resolve-Path $args[0]
+$cwd=$PWD
+cd "$build_path"
+meson install
+cd "$CWD"
 $site_path = "$build_path\Lib\site-packages"
 $scipy_path = "$site_path\scipy"
 if (!(Test-Path -path $scipy_path)) {
