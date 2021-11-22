@@ -7,7 +7,7 @@ if is_windows
     add_global_link_arguments(gcc_link_args, language: ['c', 'cpp'])
     # Force gcc to float64 long doubles for compatibility with MSVC
     # builds, for C only.
-    add_global_link_arguments('-mlong-double-64', language: 'c')
+    add_global_arguments('-mlong-double-64', language: 'c')
     # Manual add of MS_WIN64 macro when not using MSVC.
     # https://bugs.python.org/issue28267
     bitness = run_command('_build_utils/gcc_build_bitness.py').stdout().strip()
@@ -17,9 +17,6 @@ if is_windows
   endif
   if meson.get_compiler('fortran').get_id() == 'gcc'
     add_global_link_arguments(gcc_link_args, language: ['fortran'])
-    # Force gcc to float64 long doubles for compatibility with MSVC
-    # builds.
-    add_global_link_arguments('-mlong-double-64', language: 'fortran')
     # Flag needed to work around BLAS and LAPACK Gfortran dependence on
     # undocumented C feature when passing single character string
     # arguments.
