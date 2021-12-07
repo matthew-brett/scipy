@@ -1,7 +1,7 @@
 /*
 This file is part of pocketfft.
 
-Copyright (C) 2010-2020 Max-Planck-Society
+Copyright (C) 2010-2021 Max-Planck-Society
 Copyright (C) 2019-2020 Peter Bell
 
 For the odd-sized DCT-IV transforms:
@@ -48,16 +48,16 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 #ifndef POCKETFFT_CACHE_SIZE
-#define POCKETFFT_CACHE_SIZE 16
+#define POCKETFFT_CACHE_SIZE 0
 #endif
 
 #include <cmath>
-#include <cstring>
 #include <cstdlib>
 #include <stdexcept>
 #include <memory>
 #include <vector>
 #include <complex>
+#include <algorithm>
 #if POCKETFFT_CACHE_SIZE!=0
 #include <array>
 #include <mutex>
@@ -152,7 +152,8 @@ template<> struct VLEN<double> { static constexpr size_t val=2; };
 #if __cplusplus >= 201703L
 inline void *aligned_alloc(size_t align, size_t size)
   {
-  void *ptr = ::aligned_alloc(align,size);
+  // aligned_alloc() requires that the requested size is a multiple of "align"
+  void *ptr = ::aligned_alloc(align,(size+align-1)&(~(align-1)));
   if (!ptr) throw std::bad_alloc();
   return ptr;
   }
@@ -514,25 +515,12 @@ namespace threading {
 
 #ifdef POCKETFFT_NO_MULTITHREADING
 
-constexpr inline size_t thread_id() { return 0; }
-constexpr inline size_t num_threads() { return 1; }
-
 template <typename Func>
 void thread_map(size_t /* nthreads */, Func f)
-  { f(); }
+  { f(0, 1); }
 
 #else
 
-inline size_t &thread_id()
-  {
-  static thread_local size_t thread_id_=0;
-  return thread_id_;
-  }
-inline size_t &num_threads()
-  {
-  static thread_local size_t num_threads_=1;
-  return num_threads_;
-  }
 static const size_t max_threads = std::max(1u, std::thread::hardware_concurrency());
 
 class latch
@@ -785,7 +773,7 @@ void thread_map(size_t nthreads, Func f)
     nthreads = max_threads;
 
   if (nthreads == 1)
-    { f(); return; }
+    { f(0, 1); return; }
 
   auto & pool = get_pool();
   latch counter(nthreads);
@@ -795,9 +783,7 @@ void thread_map(size_t nthreads, Func f)
     {
     pool.submit(
       [&f, &counter, &ex, &ex_mut, i, nthreads] {
-      thread_id() = i;
-      num_threads() = nthreads;
-      try { f(); }
+      try { f(i, nthreads); }
       catch (...)
         {
         std::lock_guard<std::mutex> lock(ex_mut);
@@ -1301,9 +1287,9 @@ template<bool fwd, typename T> void pass11 (size_t ido, size_t l1,
       }
   }
 
-#undef PARTSTEP11
-#undef PARTSTEP11a0
-#undef PARTSTEP11a
+#undef POCKETFFT_PARTSTEP11
+#undef POCKETFFT_PARTSTEP11a0
+#undef POCKETFFT_PARTSTEP11a
 #undef POCKETFFT_PREP11
 
 template<bool fwd, typename T> void passg (size_t ido, size_t ip,
@@ -1455,7 +1441,7 @@ template<bool fwd, typename T> void pass_all(T c[], T0 fct) const
       for (size_t i=0; i<length; ++i)
         c[i] = ch[i]*fct;
     else
-      memcpy (c,p1,length*sizeof(T));
+      std::copy_n (p1, length, c);
     }
   else
     if (fct!=1.)
@@ -2203,19 +2189,19 @@ template<typename T> void radbg(size_t ido, size_t ip, size_t l1,
     }
   }
 
-    template<typename T> void copy_and_norm(T *c, T *p1, size_t n, T0 fct) const
+    template<typename T> void copy_and_norm(T *c, T *p1, T0 fct) const
       {
       if (p1!=c)
         {
         if (fct!=1.)
-          for (size_t i=0; i<n; ++i)
+          for (size_t i=0; i<length; ++i)
             c[i] = fct*p1[i];
         else
-          memcpy (c,p1,n*sizeof(T));
+          std::copy_n (p1, length, c);
         }
       else
         if (fct!=1.)
-          for (size_t i=0; i<n; ++i)
+          for (size_t i=0; i<length; ++i)
             c[i] *= fct;
       }
 
@@ -2223,16 +2209,16 @@ template<typename T> void radbg(size_t ido, size_t ip, size_t l1,
     template<typename T> void exec(T c[], T0 fct, bool r2hc) const
       {
       if (length==1) { c[0]*=fct; return; }
-      size_t n=length, nf=fact.size();
-      arr<T> ch(n);
+      size_t nf=fact.size();
+      arr<T> ch(length);
       T *p1=c, *p2=ch.data();
 
       if (r2hc)
-        for(size_t k1=0, l1=n; k1<nf;++k1)
+        for(size_t k1=0, l1=length; k1<nf;++k1)
           {
           size_t k=nf-k1-1;
           size_t ip=fact[k].fct;
-          size_t ido=n / l1;
+          size_t ido=length / l1;
           l1 /= ip;
           if(ip==4)
             radf4(ido, l1, p1, p2, fact[k].tw);
@@ -2250,7 +2236,7 @@ template<typename T> void radbg(size_t ido, size_t ip, size_t l1,
         for(size_t k=0, l1=1; k<nf; k++)
           {
           size_t ip = fact[k].fct,
-                 ido= n/(ip*l1);
+                 ido= length/(ip*l1);
           if(ip==4)
             radb4(ido, l1, p1, p2, fact[k].tw);
           else if(ip==2)
@@ -2265,7 +2251,7 @@ template<typename T> void radbg(size_t ido, size_t ip, size_t l1,
           l1*=ip;
           }
 
-      copy_and_norm(c,p1,n,fct);
+      copy_and_norm(c,p1,fct);
       }
 
   private:
@@ -2436,13 +2422,12 @@ template<typename T0> class fftblue
           tmp[m].Set(c[m], zero);
         fft<true>(tmp.data(),fct);
         c[0] = tmp[0].r;
-        memcpy (c+1, tmp.data()+1, (n-1)*sizeof(T));
+        std::copy_n (&tmp[1].r, n-1, &c[1]);
         }
       else
         {
         tmp[0].Set(c[0],c[0]*0);
-        memcpy (reinterpret_cast<void *>(tmp.data()+1),
-                reinterpret_cast<void *>(c+1), (n-1)*sizeof(T));
+        std::copy_n (c+1, n-1, &tmp[1].r);
         if ((n&1)==0) tmp[n/2].i=T0(0)*c[0];
         for (size_t m=1; 2*m<n; ++m)
           tmp[n-m].Set(tmp[m].r, -tmp[m].i);
@@ -2881,15 +2866,14 @@ template<size_t N> class multi_iter
       }
 
   public:
-    multi_iter(const arr_info &iarr_, const arr_info &oarr_, size_t idim_)
+    multi_iter(const arr_info &iarr_, const arr_info &oarr_, size_t idim_,
+               size_t nshares, size_t myshare)
       : pos(iarr_.ndim(), 0), iarr(iarr_), oarr(oarr_), p_ii(0),
         str_i(iarr.stride(idim_)), p_oi(0), str_o(oarr.stride(idim_)),
         idim(idim_), rem(iarr.size()/iarr.shape(idim))
       {
-      auto nshares = threading::num_threads();
       if (nshares==1) return;
       if (nshares==0) throw std::runtime_error("can't run with zero threads");
-      auto myshare = threading::thread_id();
       if (myshare>=nshares) throw std::runtime_error("impossible share requested");
       size_t nbase = rem/nshares;
       size_t additional = rem%nshares;
@@ -3134,11 +3118,11 @@ POCKETFFT_NOINLINE void general_nd(const cndarr<T> &in, ndarr<T> &out,
 
     threading::thread_map(
       util::thread_count(nthreads, in.shape(), axes[iax], VLEN<T>::val),
-      [&] {
+      [&] (size_t tid, size_t nthreads) {
         constexpr auto vlen = VLEN<T0>::val;
         auto storage = alloc_tmp<T0>(in.shape(), len, sizeof(T));
         const auto &tin(iax==0? in : out);
-        multi_iter<vlen> it(tin, out, axes[iax]);
+        multi_iter<vlen> it(tin, out, axes[iax], nthreads, tid);
 #ifndef POCKETFFT_NO_VECTORS
         if (vlen>1)
           while (it.remaining()>=vlen)
@@ -3241,10 +3225,10 @@ template<typename T> POCKETFFT_NOINLINE void general_r2c(
   size_t len=in.shape(axis);
   threading::thread_map(
     util::thread_count(nthreads, in.shape(), axis, VLEN<T>::val),
-    [&] {
+    [&] (size_t tid, size_t nthreads) {
     constexpr auto vlen = VLEN<T>::val;
     auto storage = alloc_tmp<T>(in.shape(), len, sizeof(T));
-    multi_iter<vlen> it(in, out, axis);
+    multi_iter<vlen> it(in, out, axis, nthreads, tid);
 #ifndef POCKETFFT_NO_VECTORS
     if (vlen>1)
       while (it.remaining()>=vlen)
@@ -3296,10 +3280,10 @@ template<typename T> POCKETFFT_NOINLINE void general_c2r(
   size_t len=out.shape(axis);
   threading::thread_map(
     util::thread_count(nthreads, in.shape(), axis, VLEN<T>::val),
-    [&] {
+    [&] (size_t tid, size_t nthreads) {
       constexpr auto vlen = VLEN<T>::val;
       auto storage = alloc_tmp<T>(out.shape(), len, sizeof(T));
-      multi_iter<vlen> it(in, out, axis);
+      multi_iter<vlen> it(in, out, axis, nthreads, tid);
 #ifndef POCKETFFT_NO_VECTORS
       if (vlen>1)
         while (it.remaining()>=vlen)
@@ -3362,18 +3346,18 @@ template<typename T> POCKETFFT_NOINLINE void general_c2r(
 
 struct ExecR2R
   {
-  bool r2c, forward;
+  bool r2h, forward;
 
   template <typename T0, typename T, size_t vlen> void operator () (
     const multi_iter<vlen> &it, const cndarr<T0> &in, ndarr<T0> &out, T * buf,
     const pocketfft_r<T0> &plan, T0 fct) const
     {
     copy_input(it, in, buf);
-    if ((!r2c) && forward)
+    if ((!r2h) && forward)
       for (size_t i=2; i<it.length_out(); i+=2)
         buf[i] = -buf[i];
-    plan.exec(buf, fct, forward);
-    if (r2c && (!forward))
+    plan.exec(buf, fct, r2h);
+    if (r2h && (!forward))
       for (size_t i=2; i<it.length_out(); i+=2)
         buf[i] = -buf[i];
     copy_output(it, buf, out);
