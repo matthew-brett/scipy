@@ -5,15 +5,9 @@ win_gcc = is_windows and meson.get_compiler('cpp').get_id() == 'gcc'
 
 pocketfft_threads = []
 fft_deps = [py3_dep]
-if not win_gcc
-  if thread_dep.found()
-    pocketfft_threads += ['-DPOCKETFFT_PTHREADS']
-    fft_deps += [thread_dep]
-  endif
-else
-  # Freezes using threading for mingw-w64 gcc:
-  # https://github.com/mreineck/pocketfft/issues/1
-  pocketfft_threads += ['-DPOCKETFFT_NO_MULTITHREADING']
+if thread_dep.found()
+  pocketfft_threads += ['-DPOCKETFFT_PTHREADS']
+  fft_deps += [thread_dep]
 endif
 
 #TODO: add the equivalent of set_cxx_flags_hook
