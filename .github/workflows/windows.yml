@@ -1,13 +1,10 @@
-name: Windows Tests
-
 on:
   push:
     branches:
-      - meson
-
+      - vanilla-mingw-ci
   pull_request:
     branches:
-      - meson
+      - vanilla-mingw-ci
 
 jobs:
   test:
@@ -23,17 +20,25 @@ jobs:
         run: |
           # Install path, culled from output of Choco install above.
           $py_dir = 'C:\hostedtoolcache\windows\Python\3.9.9\x64'
-          echo "$py_dir;$py_dir\Scripts;" >> $env:GITHUB_PATH
+          echo "$py_dir;$py_dir\Scripts" >> $env:GITHUB_PATH
       - name: show-python-version
         run: |
           python --version
-      - name: install-rtools
+      - name: set-msys2-dir
         run: |
-          choco install rtools --no-progress
-          echo "c:\rtools40\ucrt64\bin;" >> $env:GITHUB_PATH
+          echo "msys2_dir=c:\msys64" >> $env:GITHUB_ENV
+      - name: install-msys2
+        run: |
+          choco install msys2 --params="/InstallDir:${env:msys2_dir} /NoUpdate /NoPath" --no-progress
+      - name: install-gcc-ucrt
+        run: |
+          $pacman = "${env:msys2_dir}\usr\bin\pacman"
+          & $pacman --noconfirm -Syu
+          & $pacman --noconfirm -Su
+          & $pacman --noconfirm -S --needed mingw-w64-ucrt-x86_64-gcc  mingw-w64-ucrt-x86_64-gcc-fortran
+          echo  "${env:msys2_dir}\ucrt64\bin" >> $env:GITHUB_PATH
       - name: show-gfortran
         run: |
-          gcc --version
           gfortran --version
       - name: pip-packages
         run: |
@@ -45,6 +50,9 @@ jobs:
           gdown --id 1G3jwxMY4ZVRqvz6owl0kmw_Innmr4ZnV
           unzip -d c:\ openblas_32_if.zip
           echo "PKG_CONFIG_PATH=c:\opt\openblas\if_32\64\lib\pkgconfig;" >> $env:GITHUB_ENV
+      - name: pkg-config
+        run: |
+          choco install pkgconfiglite
       - name: meson-configure
         run: |
           git submodule update --init --recursive
